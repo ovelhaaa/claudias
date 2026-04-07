@@ -35,22 +35,10 @@
 #include "clouds/drivers/adc.h"
 #include "clouds/drivers/gate_input.h"
 #include "clouds/dsp/parameters.h"
+#include "clouds/control/parameter_mapper.h"
 
 namespace clouds {
 
-enum BlendParameter {
-  BLEND_PARAMETER_DRY_WET,
-  BLEND_PARAMETER_STEREO_SPREAD,
-  BLEND_PARAMETER_FEEDBACK,
-  BLEND_PARAMETER_REVERB,
-  BLEND_PARAMETER_LAST
-};
-
-struct CvTransformation {
-  bool flip;
-  bool remove_offset;
-  float filter_coefficient;
-};
 
 class CvScaler {
  public:
@@ -93,60 +81,41 @@ class CvScaler {
   }
   
   inline void set_blend_parameter(BlendParameter parameter) {
-    blend_parameter_ = parameter;
-    blend_knob_origin_ = previous_blend_knob_value_;
+    parameter_mapper_.set_blend_parameter(parameter);
   }
   
   inline void MatchKnobPosition() {
-    previous_blend_knob_value_ = -1.0f;
+    parameter_mapper_.MatchKnobPosition();
   }
   
   inline BlendParameter blend_parameter() const {
-    return blend_parameter_;
+    return parameter_mapper_.blend_parameter();
   }
   
   inline float blend_value(BlendParameter parameter) const {
-    return blend_[parameter];
+    return parameter_mapper_.blend_value(parameter);
   }
   
   inline void set_blend_value(BlendParameter parameter, float value) {
-    blend_[parameter] = value;
+    parameter_mapper_.set_blend_value(parameter, value);
   }
   
   inline bool blend_knob_touched() const {
-    return blend_knob_touched_;
+    return parameter_mapper_.blend_knob_touched();
   }
   
   void UnlockBlendKnob() {
-    previous_blend_knob_value_ = -1.0f;
+    parameter_mapper_.UnlockBlendKnob();
   }
 
  private:
-  void UpdateBlendParameters(float knob, float cv);
-  static const int kAdcLatency = 5;
-  
   Adc adc_;
   GateInput gate_input_;
   CalibrationData* calibration_data_;
   
-  float smoothed_adc_value_[ADC_CHANNEL_LAST];
-  static CvTransformation transformations_[ADC_CHANNEL_LAST];
-  
-  float note_;
-  
-  BlendParameter blend_parameter_;
-  float blend_[BLEND_PARAMETER_LAST];
-  float blend_mod_[BLEND_PARAMETER_LAST];
-  float previous_blend_knob_value_;
-
-  float blend_knob_origin_;
-  float blend_knob_quantized_;
-  bool blend_knob_touched_;
-
   float cv_c1_;
-  
-  bool previous_trigger_[kAdcLatency];
-  bool previous_gate_[kAdcLatency];
+
+  ParameterMapper parameter_mapper_;
   
   DISALLOW_COPY_AND_ASSIGN(CvScaler);
 };

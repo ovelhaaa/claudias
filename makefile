@@ -39,6 +39,7 @@ UPLOAD_COMMAND  = upload_combo_jtag_erase_first
 TARGET         = clouds
 PACKAGES       = clouds \
 		clouds/drivers \
+		clouds/control \
 		clouds/dsp \
 		clouds/dsp/pvoc \
 		stmlib/dsp \
