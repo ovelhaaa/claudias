@@ -132,13 +132,13 @@ struct CloudsWasmEngine {
       controls.control[3] = 0.0f;
       controls.control[4] = control[CLOUDS_PARAM_PITCH];
       controls.control[5] = 0.0f;
-      controls.control[6] = control[CLOUDS_PARAM_BLEND];
+      controls.control[6] = control[CLOUDS_PARAM_DRY_WET];
       controls.control[7] = 0.0f;
       controls.control[8] = control[CLOUDS_PARAM_TEXTURE];
       controls.control[9] = 0.0f;
 
       mapper.set_blend_parameter(clouds::BLEND_PARAMETER_DRY_WET);
-      mapper.set_blend_value(clouds::BLEND_PARAMETER_DRY_WET, control[CLOUDS_PARAM_BLEND]);
+      mapper.set_blend_value(clouds::BLEND_PARAMETER_DRY_WET, control[CLOUDS_PARAM_DRY_WET]);
       mapper.set_blend_value(clouds::BLEND_PARAMETER_STEREO_SPREAD, control[CLOUDS_PARAM_SPREAD]);
       mapper.set_blend_value(clouds::BLEND_PARAMETER_FEEDBACK, control[CLOUDS_PARAM_FEEDBACK]);
       mapper.set_blend_value(clouds::BLEND_PARAMETER_REVERB, control[CLOUDS_PARAM_REVERB]);
