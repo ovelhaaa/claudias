@@ -22,8 +22,26 @@ class CloudsProcessor extends AudioWorkletProcessor {
     };
     this.inputMeter = 0;
     this.outputMeter = 0;
+    this.bufferCapacity = 0;
+    this.dryL = new Float32Array(0);
+    this.dryR = new Float32Array(0);
+    this.wetL = new Float32Array(0);
+    this.wetR = new Float32Array(0);
     this.port.onmessage = (event) => this.onMessage(event.data);
     this.loadWasm();
+  }
+
+  ensureBufferCapacity(requiredFrames) {
+    if (requiredFrames <= this.bufferCapacity) {
+      return;
+    }
+
+    const nextCapacity = Math.max(requiredFrames, this.bufferCapacity ? this.bufferCapacity * 2 : BLOCK);
+    this.dryL = new Float32Array(nextCapacity);
+    this.dryR = new Float32Array(nextCapacity);
+    this.wetL = new Float32Array(nextCapacity);
+    this.wetR = new Float32Array(nextCapacity);
+    this.bufferCapacity = nextCapacity;
   }
 
   async loadWasm() {
@@ -69,8 +87,9 @@ class CloudsProcessor extends AudioWorkletProcessor {
     const ratioIn = this.browserRate / DSP_RATE;
     const ratioOut = DSP_RATE / this.browserRate;
     const dspFrames = Math.max(BLOCK, Math.ceil(outL.length * ratioOut));
-    const dryL = new Float32Array(dspFrames);
-    const dryR = new Float32Array(dspFrames);
+    this.ensureBufferCapacity(dspFrames);
+    const dryL = this.dryL;
+    const dryR = this.dryR;
 
     for (let i = 0; i < dspFrames; i++) {
       const srcIndex = this.playhead + Math.floor(i * ratioIn);
@@ -82,8 +101,8 @@ class CloudsProcessor extends AudioWorkletProcessor {
     }
     this.playhead += Math.floor(outL.length);
 
-    const wetL = new Float32Array(dspFrames);
-    const wetR = new Float32Array(dspFrames);
+    const wetL = this.wetL;
+    const wetR = this.wetR;
 
     if (this.ready) {
       for (const [id, k] of [['position',0],['size',1],['pitch',2],['density',3],['texture',4],['dry_wet',5],['stereo_spread',6],['feedback',7],['reverb',8]]) {
