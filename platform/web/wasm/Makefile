@@ -1,8 +1,9 @@
 TARGET := clouds_wasm_engine
 OUT_DIR := build
+INCLUDE_DIR := $(OUT_DIR)/include
 
 EMXX ?= em++
-CXXFLAGS := -O3 -DNDEBUG -std=c++11 -Wall -Werror -I../../..
+CXXFLAGS := -O3 -DNDEBUG -std=c++11 -Wall -Werror -I../../.. -I$(INCLUDE_DIR)
 LDFLAGS := \
   -s WASM=1 \
   -s MODULARIZE=1 \
@@ -26,7 +27,8 @@ SOURCES := \
 all: $(OUT_DIR)/$(TARGET).js
 
 $(OUT_DIR)/$(TARGET).js: $(SOURCES) clouds_wasm_engine.h
-	mkdir -p $(OUT_DIR)
+	mkdir -p $(OUT_DIR) $(INCLUDE_DIR)
+	ln -sfn $(abspath ../../..) $(INCLUDE_DIR)/clouds
 	$(EMXX) $(CXXFLAGS) $(SOURCES) -o $@ $(LDFLAGS)
 
 clean:
