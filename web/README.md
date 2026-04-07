@@ -74,6 +74,16 @@ Destinos:
 - I/O de áudio depende da pilha WebAudio e driver do SO.
 - A UI web substitui LEDs/switches físicos.
 
+
+## Deploy automático (GitHub Pages)
+Há um workflow em `.github/workflows/web-preview-pages.yml` que:
+1. Faz checkout com submódulos.
+2. Compila o WASM via Emscripten (`make -C platform/web/wasm`).
+3. Roda build do app React (`npm install && npm run build`).
+4. Publica `web/dist` no GitHub Pages.
+
+Para repositórios project-pages, o build usa automaticamente `VITE_BASE_PATH=/<repo>/`.
+
 ## Compatibilidade STM32 preservada
 - `clouds.cc` continua como entrypoint do firmware.
 - `drivers/*`, `bootloader/*`, `hardware_design/*`, `ui.*`, `settings.*` não foram portados para web.

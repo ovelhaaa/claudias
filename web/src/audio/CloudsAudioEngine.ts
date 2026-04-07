@@ -21,7 +21,8 @@ export class CloudsAudioEngine {
   async init(onMeter: (m: { input: number; output: number; playhead: number }) => void) {
     if (this.context) return;
     this.context = new AudioContext();
-    await this.context.audioWorklet.addModule('/audio/clouds-processor.worklet.js');
+    const workletUrl = `${import.meta.env.BASE_URL}audio/clouds-processor.worklet.js`;
+    await this.context.audioWorklet.addModule(workletUrl);
     this.node = new AudioWorkletNode(this.context, 'clouds-processor', { outputChannelCount: [2] });
     this.node.connect(this.context.destination);
     this.node.port.onmessage = (evt) => {

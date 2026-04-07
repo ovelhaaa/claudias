@@ -1,4 +1,4 @@
-import initCloudsModule from '/wasm/clouds_wasm_engine.js';
+import initCloudsModule from '../wasm/clouds_wasm_engine.js';
 
 const DSP_RATE = 32000;
 const BLOCK = 32;
@@ -27,7 +27,9 @@ class CloudsProcessor extends AudioWorkletProcessor {
   }
 
   async loadWasm() {
-    this.module = await initCloudsModule({ locateFile: (p) => `/wasm/${p}` });
+    this.module = await initCloudsModule({
+      locateFile: (p) => new URL(`../wasm/${p}`, import.meta.url).toString()
+    });
     this.engine = this.module._clouds_create_engine();
     this.module._clouds_init_engine(this.engine, DSP_RATE, BLOCK);
     this.inPtr = this.module._malloc(BLOCK * 2 * 4);
