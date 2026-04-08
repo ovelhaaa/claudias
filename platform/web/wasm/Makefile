@@ -39,12 +39,13 @@ SOURCES := \
   ../../../dsp/pvoc/phase_vocoder.cc \
   ../../../dsp/pvoc/stft.cc \
   ../../../resources.cc \
+  $(STMLIB_DIR)/dsp/atan.cc \
   $(STMLIB_DIR)/utils/random.cc \
   $(STMLIB_DIR)/dsp/units.cc
 
 all: $(OUT_DIR)/$(TARGET).js
 
-$(EURORACK_DIR)/stmlib/stmlib.h $(EURORACK_DIR)/stmlib/utils/random.cc $(EURORACK_DIR)/stmlib/dsp/units.cc:
+$(EURORACK_DIR)/stmlib/stmlib.h $(EURORACK_DIR)/stmlib/utils/random.cc $(EURORACK_DIR)/stmlib/dsp/atan.cc $(EURORACK_DIR)/stmlib/dsp/units.cc:
 	mkdir -p $(dir $(EURORACK_DIR))
 	if [ ! -d $(EURORACK_DIR)/.git ]; then \
 		git clone --depth 1 --recurse-submodules --shallow-submodules $(EURORACK_REPO) $(EURORACK_DIR); \
