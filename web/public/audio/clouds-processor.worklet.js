@@ -49,7 +49,16 @@ class CloudsProcessor extends AudioWorkletProcessor {
   }
 
   async loadWasm() {
+    const wasmUrl = `${WORKLET_BASE_URL}../wasm/clouds_wasm_engine.wasm`;
+    const wasmBinary = await fetch(wasmUrl).then((response) => {
+      if (!response.ok) {
+        throw new Error(`Unable to load WASM binary: ${response.status} ${response.statusText}`);
+      }
+      return response.arrayBuffer();
+    });
+
     this.module = await initCloudsModule({
+      wasmBinary,
       locateFile: (p) => `${WORKLET_BASE_URL}../wasm/${p}`
     });
     this.engine = this.module._clouds_create_engine();
