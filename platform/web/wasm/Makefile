@@ -4,8 +4,20 @@ INCLUDE_DIR := $(OUT_DIR)/include
 ROOT_DIR := $(abspath ../../..)
 WORKSPACE_DIR := $(abspath ../../../..)
 
+STMLIB_LOCAL_HEADER := $(ROOT_DIR)/stmlib/stmlib.h
+STMLIB_REPO ?= https://github.com/pichenettes/stmlib.git
+STMLIB_FALLBACK_DIR := $(OUT_DIR)/deps/stmlib
+
+ifeq ($(wildcard $(STMLIB_LOCAL_HEADER)),)
+STMLIB_INCLUDE_ROOT := $(OUT_DIR)/deps
+STMLIB_PREREQ := $(STMLIB_FALLBACK_DIR)/stmlib.h
+else
+STMLIB_INCLUDE_ROOT := $(ROOT_DIR)
+STMLIB_PREREQ :=
+endif
+
 EMXX ?= em++
-CXXFLAGS := -O3 -DNDEBUG -std=c++11 -Wall -Werror -I$(ROOT_DIR) -I$(WORKSPACE_DIR) -I$(INCLUDE_DIR)
+CXXFLAGS := -O3 -DNDEBUG -std=c++11 -Wall -Werror -I$(ROOT_DIR) -I$(WORKSPACE_DIR) -I$(STMLIB_INCLUDE_ROOT) -I$(INCLUDE_DIR)
 LDFLAGS := \
   -s WASM=1 \
   -s MODULARIZE=1 \
@@ -28,7 +40,13 @@ SOURCES := \
 
 all: $(OUT_DIR)/$(TARGET).js
 
-$(OUT_DIR)/$(TARGET).js: $(SOURCES) clouds_wasm_engine.h
+$(STMLIB_FALLBACK_DIR)/stmlib.h:
+	mkdir -p $(dir $(STMLIB_FALLBACK_DIR))
+	if [ ! -d $(STMLIB_FALLBACK_DIR)/.git ]; then \
+		git clone --depth 1 $(STMLIB_REPO) $(STMLIB_FALLBACK_DIR); \
+	fi
+
+$(OUT_DIR)/$(TARGET).js: $(SOURCES) clouds_wasm_engine.h $(STMLIB_PREREQ)
 	mkdir -p $(OUT_DIR) $(INCLUDE_DIR)
 	ln -sfn $(ROOT_DIR) $(INCLUDE_DIR)/clouds
 	$(EMXX) $(CXXFLAGS) $(SOURCES) -o $@ $(LDFLAGS)
