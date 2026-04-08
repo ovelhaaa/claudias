@@ -55,9 +55,10 @@ export class CloudsAudioEngine {
     playback_mode?: PlaybackMode;
     quality?: QualityMode;
   }) {
-    const payload: Record<string, number | boolean> = { ...params };
-    if (params.playback_mode) payload.playback_mode = playbackModeToInt[params.playback_mode];
-    if (params.quality) payload.quality = qualityToInt[params.quality];
+    const { playback_mode, quality, ...numericBooleanParams } = params;
+    const payload: Record<string, number | boolean> = { ...numericBooleanParams };
+    if (playback_mode) payload.playback_mode = playbackModeToInt[playback_mode];
+    if (quality) payload.quality = qualityToInt[quality];
     this.node?.port.postMessage({ type: 'params', params: payload });
   }
 
