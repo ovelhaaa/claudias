@@ -39,7 +39,7 @@ export class CloudsAudioEngine {
     const data = await file.arrayBuffer();
     const decoded = await this.context.decodeAudioData(data);
     const left = decoded.getChannelData(0).slice();
-    const right = decoded.numberOfChannels > 1 ? decoded.getChannelData(1).slice() : left;
+    const right = decoded.numberOfChannels > 1 ? decoded.getChannelData(1).slice() : left.slice();
     this.node.port.postMessage({ type: 'load-buffer', left, right }, [left.buffer, right.buffer]);
   }
 
