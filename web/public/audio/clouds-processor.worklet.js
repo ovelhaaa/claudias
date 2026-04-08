@@ -31,6 +31,7 @@ class CloudsProcessor extends AudioWorkletProcessor {
     this.dryR = new Float32Array(0);
     this.wetL = new Float32Array(0);
     this.wetR = new Float32Array(0);
+    this.loadingWasm = false;
     this.port.onmessage = (event) => this.onMessage(event.data);
     this.loadWasm();
   }
@@ -48,25 +49,49 @@ class CloudsProcessor extends AudioWorkletProcessor {
     this.bufferCapacity = nextCapacity;
   }
 
-  async loadWasm() {
-    const wasmUrl = `${WORKLET_BASE_URL}../wasm/clouds_wasm_engine.wasm`;
-    const wasmBinary = await fetch(wasmUrl).then((response) => {
-      if (!response.ok) {
-        throw new Error(`Unable to load WASM binary: ${response.status} ${response.statusText}`);
-      }
-      return response.arrayBuffer();
-    });
+  async loadWasm(wasmBinary = null) {
+    if (this.ready || this.loadingWasm) {
+      return;
+    }
 
-    this.module = await initCloudsModule({
-      wasmBinary,
-      locateFile: (p) => `${WORKLET_BASE_URL}../wasm/${p}`
-    });
-    this.engine = this.module._clouds_create_engine();
-    this.module._clouds_init_engine(this.engine, DSP_RATE, BLOCK);
-    this.inPtr = this.module._malloc(BLOCK * 2 * 4);
-    this.outPtr = this.module._malloc(BLOCK * 2 * 4);
-    this.ready = true;
-    this.port.postMessage({ type: 'ready' });
+    this.loadingWasm = true;
+
+    try {
+      let resolvedBinary = wasmBinary;
+
+      if (!resolvedBinary) {
+        if (typeof fetch !== 'function') {
+          this.port.postMessage({ type: 'request-wasm' });
+          return;
+        }
+
+        const wasmUrl = `${WORKLET_BASE_URL}../wasm/clouds_wasm_engine.wasm`;
+        resolvedBinary = await fetch(wasmUrl).then((response) => {
+          if (!response.ok) {
+            throw new Error(`Unable to load WASM binary: ${response.status} ${response.statusText}`);
+          }
+          return response.arrayBuffer();
+        });
+      }
+
+      this.module = await initCloudsModule({
+        wasmBinary: resolvedBinary,
+        locateFile: (p) => `${WORKLET_BASE_URL}../wasm/${p}`
+      });
+      this.engine = this.module._clouds_create_engine();
+      this.module._clouds_init_engine(this.engine, DSP_RATE, BLOCK);
+      this.inPtr = this.module._malloc(BLOCK * 2 * 4);
+      this.outPtr = this.module._malloc(BLOCK * 2 * 4);
+      this.ready = true;
+      this.port.postMessage({ type: 'ready' });
+    } catch (error) {
+      this.port.postMessage({
+        type: 'error',
+        message: error instanceof Error ? error.message : String(error)
+      });
+    } finally {
+      this.loadingWasm = false;
+    }
   }
 
   onMessage(msg) {
@@ -85,6 +110,8 @@ class CloudsProcessor extends AudioWorkletProcessor {
       this.pendingTrigger = true;
     } else if (msg.type === 'reset') {
       if (this.ready) this.module._clouds_reset_state(this.engine);
+    } else if (msg.type === 'wasm-binary') {
+      this.loadWasm(msg.wasmBinary);
     }
   }
 
