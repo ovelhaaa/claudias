@@ -10,9 +10,11 @@ EURORACK_DIR := $(OUT_DIR)/deps/eurorack
 
 ifeq ($(wildcard $(STMLIB_LOCAL_HEADER)),)
 STMLIB_INCLUDE_ROOT := $(EURORACK_DIR)
+STMLIB_DIR := $(EURORACK_DIR)/stmlib
 STMLIB_PREREQ := $(EURORACK_DIR)/stmlib/stmlib.h
 else
 STMLIB_INCLUDE_ROOT := $(ROOT_DIR)
+STMLIB_DIR := $(ROOT_DIR)/stmlib
 STMLIB_PREREQ :=
 endif
 
@@ -36,7 +38,9 @@ SOURCES := \
   ../../../dsp/pvoc/frame_transformation.cc \
   ../../../dsp/pvoc/phase_vocoder.cc \
   ../../../dsp/pvoc/stft.cc \
-  ../../../resources.cc
+  ../../../resources.cc \
+  $(STMLIB_DIR)/utils/random.cc \
+  $(STMLIB_DIR)/dsp/units.cc
 
 all: $(OUT_DIR)/$(TARGET).js
 
