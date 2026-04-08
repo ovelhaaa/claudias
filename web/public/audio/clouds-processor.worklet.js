@@ -3,6 +3,7 @@ import initCloudsModule from '../wasm/clouds_wasm_engine.js';
 const DSP_RATE = 32000;
 const BLOCK = 32;
 const METER_UPDATE_HZ = 30;
+const WORKLET_BASE_URL = import.meta.url.replace(/[^/]*$/, '');
 
 class CloudsProcessor extends AudioWorkletProcessor {
   constructor() {
@@ -49,7 +50,7 @@ class CloudsProcessor extends AudioWorkletProcessor {
 
   async loadWasm() {
     this.module = await initCloudsModule({
-      locateFile: (p) => new URL(`../wasm/${p}`, import.meta.url).toString()
+      locateFile: (p) => `${WORKLET_BASE_URL}../wasm/${p}`
     });
     this.engine = this.module._clouds_create_engine();
     this.module._clouds_init_engine(this.engine, DSP_RATE, BLOCK);
