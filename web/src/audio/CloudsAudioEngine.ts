@@ -17,6 +17,7 @@ const qualityToInt: Record<QualityMode, number> = {
 export class CloudsAudioEngine {
   private context?: AudioContext;
   private node?: AudioWorkletNode;
+  private wasmBinary?: Uint8Array;
 
   async init(onMeter: (m: { input: number; output: number; playhead: number }) => void) {
     if (this.context) return;
@@ -26,8 +27,16 @@ export class CloudsAudioEngine {
     this.node = new AudioWorkletNode(this.context, 'clouds-processor', { outputChannelCount: [2] });
     this.node.connect(this.context.destination);
     this.node.port.onmessage = (evt) => {
-      if (evt.data.type === 'meter') onMeter(evt.data);
+      if (evt.data.type === 'meter') {
+        onMeter(evt.data);
+      } else if (evt.data.type === 'request-wasm') {
+        void this.sendWasmBinary();
+      } else if (evt.data.type === 'error') {
+        console.error('[CloudsAudioEngine] Worklet error:', evt.data.message);
+      }
     };
+
+    await this.sendWasmBinary();
   }
 
   async resume() {
@@ -68,5 +77,24 @@ export class CloudsAudioEngine {
 
   reset() {
     this.node?.port.postMessage({ type: 'reset' });
+  }
+
+  private async sendWasmBinary() {
+    if (!this.node) return;
+
+    if (!this.wasmBinary) {
+      const wasmUrl = `${import.meta.env.BASE_URL}wasm/clouds_wasm_engine.wasm`;
+      const response = await fetch(wasmUrl);
+      if (!response.ok) {
+        throw new Error(`Unable to load WASM binary: ${response.status} ${response.statusText}`);
+      }
+      this.wasmBinary = new Uint8Array(await response.arrayBuffer());
+    }
+
+    const transferableCopy = this.wasmBinary.slice();
+    this.node.port.postMessage(
+      { type: 'wasm-binary', wasmBinary: transferableCopy.buffer },
+      [transferableCopy.buffer]
+    );
   }
 }
