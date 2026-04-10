@@ -64,6 +64,7 @@ void GranularProcessor::Init(
   dry_wet_ = 0.0f;
   feedback_lp_ = 0.0f;
   reverb_amount_lp_ = 0.0f;
+  reverb_feedback_lp_ = 0.0f;
 }
 
 void GranularProcessor::ResetFilters() {
@@ -269,15 +270,15 @@ void GranularProcessor::Process(
   reverb_amount += feedback * (2.0f - feedback) * freeze_lp_ * 0.8f;
   CONSTRAIN(reverb_amount, 0.0f, 0.95f);
   ONE_POLE(reverb_amount_lp_, reverb_amount, 0.02f);
+  ONE_POLE(reverb_feedback_lp_, feedback, 0.02f);
   
   reverb_.set_amount(reverb_amount_lp_ * 0.48f);
   reverb_.set_diffusion(0.7f);
   reverb_.set_time(0.35f + 0.58f * reverb_amount_lp_);
   reverb_.set_input_gain(0.16f);
-  reverb_.set_lp(0.6f + 0.33f * feedback);
+  reverb_.set_lp(0.6f + 0.33f * reverb_feedback_lp_);
   reverb_.Process(out_, size);
   
-  const float post_gain = 1.0f;
   ParameterInterpolator dry_wet_mod(&dry_wet_, parameters_.dry_wet, size);
   for (size_t i = 0; i < size; ++i) {
     float dry_wet = dry_wet_mod.Next();
@@ -285,8 +286,8 @@ void GranularProcessor::Process(
     float fade_out = Interpolate(lut_xfade_out, dry_wet, 16.0f);
     float l = static_cast<float>(input[i].l) / 32768.0f * fade_out;
     float r = static_cast<float>(input[i].r) / 32768.0f * fade_out;
-    l += out_[i].l * post_gain * fade_in;
-    r += out_[i].r * post_gain * fade_in;
+    l += out_[i].l * fade_in;
+    r += out_[i].r * fade_in;
     output[i].l = SoftConvert(l);
     output[i].r = SoftConvert(r);
   }
