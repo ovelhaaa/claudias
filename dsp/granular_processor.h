@@ -171,6 +171,9 @@ class GranularProcessor {
   bool reset_buffers_;
   float freeze_lp_;
   float dry_wet_;
+  float feedback_lp_;
+  float reverb_amount_lp_;
+  float reverb_feedback_lp_;
   
   void* buffer_[2];
   size_t buffer_size_[2];

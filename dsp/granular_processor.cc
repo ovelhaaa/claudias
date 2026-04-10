@@ -62,6 +62,9 @@ void GranularProcessor::Init(
   previous_playback_mode_ = PLAYBACK_MODE_LAST;
   reset_buffers_ = true;
   dry_wet_ = 0.0f;
+  feedback_lp_ = 0.0f;
+  reverb_amount_lp_ = 0.0f;
+  reverb_feedback_lp_ = 0.0f;
 }
 
 void GranularProcessor::ResetFilters() {
@@ -194,12 +197,15 @@ void GranularProcessor::Process(
   fb_filter_[1].set(fb_filter_[0]);
   fb_filter_[0].Process<FILTER_MODE_HIGH_PASS>(&fb_[0].l, &fb_[0].l, size, 2);
   fb_filter_[1].Process<FILTER_MODE_HIGH_PASS>(&fb_[0].r, &fb_[0].r, size, 2);
-  float fb_gain = feedback * (1.0f - freeze_lp_);
+  float feedback_target = feedback * (1.0f - freeze_lp_);
+  ParameterInterpolator fb_gain_mod(&feedback_lp_, feedback_target, size);
   for (size_t i = 0; i < size; ++i) {
+    float fb_gain = fb_gain_mod.Next();
+    float fb_drive = fb_gain * 1.1f;
     in_[i].l += fb_gain * (
-        SoftLimit(fb_gain * 1.4f * fb_[i].l + in_[i].l) - in_[i].l);
+        SoftLimit(fb_drive * fb_[i].l + in_[i].l) - in_[i].l);
     in_[i].r += fb_gain * (
-        SoftLimit(fb_gain * 1.4f * fb_[i].r + in_[i].r) - in_[i].r);
+        SoftLimit(fb_drive * fb_[i].r + in_[i].r) - in_[i].r);
   }
   
   if (low_fidelity_) {
@@ -260,18 +266,19 @@ void GranularProcessor::Process(
   copy(&out_[0], &out_[size], &fb_[0]);
   
   // Apply reverb.
-  float reverb_amount = parameters_.reverb * 0.95f;
-  reverb_amount += feedback * (2.0f - feedback) * freeze_lp_;
-  CONSTRAIN(reverb_amount, 0.0f, 1.0f);
+  float reverb_amount = parameters_.reverb * 0.85f;
+  reverb_amount += feedback * (2.0f - feedback) * freeze_lp_ * 0.8f;
+  CONSTRAIN(reverb_amount, 0.0f, 0.95f);
+  ONE_POLE(reverb_amount_lp_, reverb_amount, 0.02f);
+  ONE_POLE(reverb_feedback_lp_, feedback, 0.02f);
   
-  reverb_.set_amount(reverb_amount * 0.54f);
+  reverb_.set_amount(reverb_amount_lp_ * 0.48f);
   reverb_.set_diffusion(0.7f);
-  reverb_.set_time(0.35f + 0.63f * reverb_amount);
-  reverb_.set_input_gain(0.2f);
-  reverb_.set_lp(0.6f + 0.37f * feedback);
+  reverb_.set_time(0.35f + 0.58f * reverb_amount_lp_);
+  reverb_.set_input_gain(0.16f);
+  reverb_.set_lp(0.6f + 0.33f * reverb_feedback_lp_);
   reverb_.Process(out_, size);
   
-  const float post_gain = 1.2f;
   ParameterInterpolator dry_wet_mod(&dry_wet_, parameters_.dry_wet, size);
   for (size_t i = 0; i < size; ++i) {
     float dry_wet = dry_wet_mod.Next();
@@ -279,8 +286,8 @@ void GranularProcessor::Process(
     float fade_out = Interpolate(lut_xfade_out, dry_wet, 16.0f);
     float l = static_cast<float>(input[i].l) / 32768.0f * fade_out;
     float r = static_cast<float>(input[i].r) / 32768.0f * fade_out;
-    l += out_[i].l * post_gain * fade_in;
-    r += out_[i].r * post_gain * fade_in;
+    l += out_[i].l * fade_in;
+    r += out_[i].r * fade_in;
     output[i].l = SoftConvert(l);
     output[i].r = SoftConvert(r);
   }
@@ -384,6 +391,10 @@ void GranularProcessor::Prepare() {
   }
   
   if (reset_buffers_ || (playback_mode_changed && !benign_change)) {
+    feedback_lp_ = 0.0f;
+    reverb_amount_lp_ = 0.0f;
+    reverb_feedback_lp_ = 0.0f;
+
     void* buffer[2];
     size_t buffer_size[2];
     void* workspace;
