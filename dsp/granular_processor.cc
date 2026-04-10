@@ -391,6 +391,10 @@ void GranularProcessor::Prepare() {
   }
   
   if (reset_buffers_ || (playback_mode_changed && !benign_change)) {
+    feedback_lp_ = 0.0f;
+    reverb_amount_lp_ = 0.0f;
+    reverb_feedback_lp_ = 0.0f;
+
     void* buffer[2];
     size_t buffer_size[2];
     void* workspace;
